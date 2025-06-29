@@ -1,5 +1,6 @@
 #include <inttypes.h>
 #include "pseudoc.h"
+#include "binaryninjaapi.h"
 #include "highlevelilinstruction.h"
 
 using namespace std;
@@ -2577,6 +2578,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 					memberIndexHint = memberIndex;
 
 				bool outer = true;
+				bool callbackCalled = false;
 				if (type->GetStructure()->ResolveMemberOrBaseMember(GetFunction()->GetView(), offset, 0,
 						[&](NamedTypeReference*, Structure* s, size_t memberIndex, uint64_t structOffset,
 							uint64_t adjustedOffset, const StructureMember& member) {
@@ -2606,9 +2608,12 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 
 							tokens.Append(FieldNameToken, member.name, structOffset + member.offset, 0, 0,
 								BN_FULL_CONFIDENCE, nameList);
+							callbackCalled = true;
 						}),
-					memberIndexHint)
+					memberIndexHint || callbackCalled)
+				{
 					return;
+				}
 			}
 
 			// For non-struct types or when struct member resolution fails,
