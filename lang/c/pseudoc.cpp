@@ -1440,12 +1440,9 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 						assignUpdateSource = srcExpr.GetRightExpr();
 						break;
 					case HLIL_DIVU:
-						assignUpdateOperator = " u/= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						assignSignedHint = false;
-						break;
 					case HLIL_DIVS:
-						assignUpdateOperator = " s/= ";
+						// TODO(ma): /= signedness
+						assignUpdateOperator = " /= ";
 						assignUpdateSource = srcExpr.GetRightExpr();
 						assignSignedHint = true;
 						break;
@@ -1454,11 +1451,9 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 						assignUpdateSource = srcExpr.GetRightExpr();
 						break;
 					case HLIL_LSR:
-						assignUpdateOperator = " u>>= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						break;
 					case HLIL_ASR:
-						assignUpdateOperator = " s>>= ";
+						// TODO(ma): >>= signedness
+						assignUpdateOperator = " >>= ";
 						assignUpdateSource = srcExpr.GetRightExpr();
 						break;
 					case HLIL_AND:
@@ -2120,6 +2115,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 			bool parens = precedence > ShiftOperatorPrecedence;
 			if (parens)
 				tokens.AppendOpenParen();
+			// TODO(ma): signedness
 			AppendTwoOperand(" >> ", instr, tokens, settings, ShiftOperatorPrecedence);
 			if (parens)
 				tokens.AppendCloseParen();
