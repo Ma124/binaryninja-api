@@ -2975,7 +2975,7 @@ bool PseudoCFunction::ShouldSkipStatement(const BinaryNinja::HighLevelILInstruct
 	return false;
 }
 
-PseudoCFunctionType::PseudoCFunctionType(): LanguageRepresentationFunctionType("Pseudo C")
+PseudoCFunctionType::PseudoCFunctionType(): LanguageRepresentationFunctionType("Forked C")
 {
 }
 
