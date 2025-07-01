@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include "pseudoc.h"
 #include "binaryninjaapi.h"
+#include "binaryninjacore.h"
 #include "highlevelilinstruction.h"
 
 using namespace std;
@@ -979,7 +980,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 				GetExprTextInternal(trueExpr, tokens, settings, TopLevelOperatorPrecedence, true);
 
 				static const std::vector<BNHighLevelILOperation> operations {
-						HLIL_CONTINUE, HLIL_NORET, HLIL_UNREACHABLE, HLIL_JUMP, HLIL_GOTO, HLIL_TAILCALL};
+						HLIL_CONTINUE, HLIL_BREAK, HLIL_NORET, HLIL_UNREACHABLE, HLIL_JUMP, HLIL_GOTO, HLIL_TAILCALL};
 
 				// If the case doesn't have an instruction that implicitly exits the case, append a break statement
 				// at the end of the case
