@@ -1514,6 +1514,10 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 			else
 				tokens.Append(OperationToken, " = ");
 
+			tokens.Append(OperationToken, "( ");
+			AppendSizeToken(destExpr.size, false, tokens);
+			tokens.Append(OperationToken, " )");
+
 			// For the right side of the assignment, only use zero confidence if the instruction does
 			// not have any side effects
 			if (appearsDead && GetHighLevelILFunction()->HasSideEffects(srcExpr))
@@ -1656,7 +1660,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 				else if ((!settings || settings->IsOptionSet(ShowTypeCasts)) && srcExpr.operation == HLIL_VAR)
 				{
 					if (srcExpr.GetType().GetValue() && srcExpr.GetType()->GetClass() != StructureTypeClass
-						&& srcExpr.size > instr.size)
+						&& srcExpr.size > instr.size && !dest_expr)
 					{
 					    if (dest_expr) tokens.Append(OperationToken, "*");
 						tokens.AppendOpenParen();
