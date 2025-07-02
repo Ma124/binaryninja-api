@@ -636,7 +636,7 @@ void PseudoCFunction::GetExprText(const HighLevelILInstruction& instr, HighLevel
 
 
 void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, HighLevelILTokenEmitter& tokens,
-	DisassemblySettings* settings, BNOperatorPrecedence precedence, bool statement, optional<bool> signedHint)
+	DisassemblySettings* settings, BNOperatorPrecedence precedence, bool statement, optional<bool> signedHint, bool dest_expr)
 {
 	// The lambdas in this function are here to reduce stack frame size of this function. Without them,
 	// complex expression can cause the process to crash from a stack overflow.
@@ -1508,7 +1508,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 				}
 			}
 
-			GetExprTextInternal(destExpr, tokens, settings, precedence);
+			GetExprTextInternal(destExpr, tokens, settings, precedence, false, std::nullopt, true);
 			if (assignUpdateOperator.has_value() && assignUpdateSource.has_value())
 				tokens.Append(OperationToken, assignUpdateOperator.value());
 			else
@@ -1658,9 +1658,12 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 					if (srcExpr.GetType().GetValue() && srcExpr.GetType()->GetClass() != StructureTypeClass
 						&& srcExpr.size > instr.size)
 					{
+					    if (dest_expr) tokens.Append(OperationToken, "*");
 						tokens.AppendOpenParen();
 						AppendSizeToken(instr.size, false, tokens);
+						if (dest_expr) tokens.Append(OperationToken, "*");
 						tokens.AppendCloseParen();
+						if (dest_expr) tokens.Append(OperationToken, "&");
 					}
 				}
 
