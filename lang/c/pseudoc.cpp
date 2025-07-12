@@ -1372,9 +1372,6 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 			if (appearsDead)
 				tokens.BeginForceZeroConfidence();
 
-			std::optional<string> assignUpdateOperator;
-			std::optional<HighLevelILInstruction> assignUpdateSource;
-			bool assignUpdateNegate = false;
 			const auto destIsSplit = destExpr.operation == HLIL_SPLIT;
 			std::optional<bool> assignSignedHint;
 			if (destIsSplit)
@@ -1401,118 +1398,9 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 				tokens.AppendSemicolon();
 				return;
 			}
-			else
-			{
-				// Check for assignment with an operator on the same variable as the destination
-				// (for example, `a = a + 2` should be shown as `a += 2`)
-				if ((srcExpr.operation == HLIL_ADD || srcExpr.operation == HLIL_SUB || srcExpr.operation == HLIL_MUL
-						|| srcExpr.operation == HLIL_DIVU || srcExpr.operation == HLIL_DIVS
-						|| srcExpr.operation == HLIL_LSL || srcExpr.operation == HLIL_LSR
-						|| srcExpr.operation == HLIL_ASR || (instr.size != 0 && srcExpr.operation == HLIL_AND)
-						|| (instr.size != 0 && srcExpr.operation == HLIL_OR)
-						|| (instr.size != 0 && srcExpr.operation == HLIL_XOR))
-					&& (srcExpr.GetLeftExpr() == destExpr))
-				{
-					auto lessThanZero = [](uint64_t value, uint64_t width) -> bool {
-						return ((1UL << ((width * 8) - 1UL)) & value) != 0;
-					};
-					switch (srcExpr.operation)
-					{
-					case HLIL_ADD:
-						assignUpdateOperator = " += ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-
-						if ((assignUpdateSource.value().operation == HLIL_CONST)
-							&& lessThanZero(
-								assignUpdateSource.value().GetConstant<HLIL_CONST>(), assignUpdateSource.value().size)
-							&& assignUpdateSource.value().size >= instr.size)
-						{
-							// Convert addition of a negative constant into subtraction of a positive constant
-							assignUpdateOperator = " -= ";
-							assignUpdateNegate = true;
-						}
-						break;
-					case HLIL_SUB:
-						assignUpdateOperator = " -= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						break;
-					case HLIL_MUL:
-						assignUpdateOperator = " *= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						break;
-					case HLIL_DIVU:
-					case HLIL_DIVS:
-						// TODO(ma): /= signedness
-						assignUpdateOperator = " /= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						assignSignedHint = true;
-						break;
-					case HLIL_LSL:
-						assignUpdateOperator = " <<= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						break;
-					case HLIL_LSR:
-					case HLIL_ASR:
-						// TODO(ma): >>= signedness
-						assignUpdateOperator = " >>= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						break;
-					case HLIL_AND:
-						assignUpdateOperator = " &= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						break;
-					case HLIL_OR:
-						assignUpdateOperator = " |= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						break;
-					case HLIL_XOR:
-						assignUpdateOperator = " ^= ";
-						assignUpdateSource = srcExpr.GetRightExpr();
-						break;
-					default:
-						break;
-					}
-				}
-				else if (
-					(srcExpr.operation == HLIL_ADD || srcExpr.operation == HLIL_MUL
-						|| (instr.size != 0 && srcExpr.operation == HLIL_AND)
-						|| (instr.size != 0 && srcExpr.operation == HLIL_OR)
-						|| (instr.size != 0 && srcExpr.operation == HLIL_XOR))
-					&& (srcExpr.GetRightExpr() == destExpr))
-				{
-					switch (srcExpr.operation)
-					{
-					case HLIL_ADD:
-						assignUpdateOperator = " += ";
-						assignUpdateSource = srcExpr.GetLeftExpr();
-						break;
-					case HLIL_MUL:
-						assignUpdateOperator = " *= ";
-						assignUpdateSource = srcExpr.GetLeftExpr();
-						break;
-					case HLIL_AND:
-						assignUpdateOperator = " &= ";
-						assignUpdateSource = srcExpr.GetLeftExpr();
-						break;
-					case HLIL_OR:
-						assignUpdateOperator = " |= ";
-						assignUpdateSource = srcExpr.GetLeftExpr();
-						break;
-					case HLIL_XOR:
-						assignUpdateOperator = " ^= ";
-						assignUpdateSource = srcExpr.GetLeftExpr();
-						break;
-					default:
-						break;
-					}
-				}
-			}
 
 			GetExprTextInternal(destExpr, tokens, settings, precedence, false, std::nullopt, true);
-			if (assignUpdateOperator.has_value() && assignUpdateSource.has_value())
-				tokens.Append(OperationToken, assignUpdateOperator.value());
-			else
-				tokens.Append(OperationToken, " = ");
+			tokens.Append(OperationToken, " = ");
 
 			tokens.Append(OperationToken, "( ");
 			AppendSizeToken(destExpr.size, false, tokens);
@@ -1536,25 +1424,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 				tokens.AppendOpenParen();
 			}
 
-			if (assignUpdateOperator.has_value() && assignUpdateSource.has_value())
-			{
-				if (assignUpdateNegate)
-				{
-					tokens.AppendIntegerTextToken(assignUpdateSource.value(),
-						-BNSignExtend(
-							assignUpdateSource.value().GetConstant<HLIL_CONST>(), assignUpdateSource.value().size, 8),
-						assignUpdateSource.value().size);
-				}
-				else
-				{
-					GetExprTextInternal(assignUpdateSource.value(), tokens, settings, AssignmentOperatorPrecedence,
-						false, assignSignedHint);
-				}
-			}
-			else
-			{
-				GetExprTextInternal(srcExpr, tokens, settings, AssignmentOperatorPrecedence, false, assignSignedHint);
-			}
+			GetExprTextInternal(srcExpr, tokens, settings, AssignmentOperatorPrecedence, false, assignSignedHint);
 
 			if (destIsSplit)
 				tokens.AppendCloseParen();
