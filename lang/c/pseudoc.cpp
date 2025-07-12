@@ -631,6 +631,7 @@ void PseudoCFunction::AppendFieldTextTokens(const HighLevelILInstruction& var, u
 void PseudoCFunction::AppendVarDeclare(const HighLevelILInstruction& instr, HighLevelILTokenEmitter& tokens, const Variable variable)
 {
 	const auto variableType = GetHighLevelILFunction()->GetFunction()->GetVariableType(variable);
+	const auto forceU64 = true;
 	const auto platform = GetHighLevelILFunction()->GetFunction()->GetPlatform();
 	const auto prevTypeTokens = variableType.GetValue() ?
 		GetTypePrinter()->GetTypeTokensBeforeName(
@@ -641,7 +642,15 @@ void PseudoCFunction::AppendVarDeclare(const HighLevelILInstruction& instr, High
 			variableType.GetValue(), platform, variableType.GetConfidence()) :
 		vector<InstructionTextToken> {};
 
-	if (variableType.GetValue())
+	if (forceU64)
+	{
+		auto typeToken = InstructionTextToken(TypeNameToken, "uint64_t");
+		typeToken.context = LocalVariableTokenContext;
+		typeToken.address = variable.ToIdentifier();
+		tokens.Append(typeToken);
+		tokens.Append(TextToken, " ");
+	}
+	else if (variableType.GetValue())
 	{
 		for (auto typeToken: prevTypeTokens)
 		{
@@ -652,7 +661,7 @@ void PseudoCFunction::AppendVarDeclare(const HighLevelILInstruction& instr, High
 		tokens.Append(TextToken, " ");
 	}
 	tokens.AppendVarTextToken(variable, instr, instr.size);
-	if (variableType.GetValue())
+	if (variableType.GetValue() && !forceU64)
 	{
 		for (auto typeToken: postTypeTokens)
 		{
