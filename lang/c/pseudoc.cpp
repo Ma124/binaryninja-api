@@ -628,6 +628,42 @@ void PseudoCFunction::AppendFieldTextTokens(const HighLevelILInstruction& var, u
 }
 
 
+void PseudoCFunction::AppendVarDeclare(const HighLevelILInstruction& instr, HighLevelILTokenEmitter& tokens, const Variable variable)
+{
+	const auto variableType = GetHighLevelILFunction()->GetFunction()->GetVariableType(variable);
+	const auto platform = GetHighLevelILFunction()->GetFunction()->GetPlatform();
+	const auto prevTypeTokens = variableType.GetValue() ?
+		GetTypePrinter()->GetTypeTokensBeforeName(
+			variableType.GetValue(), platform, variableType.GetConfidence()) :
+		vector<InstructionTextToken> {};
+	const auto postTypeTokens = variableType.GetValue() ?
+		GetTypePrinter()->GetTypeTokensAfterName(
+			variableType.GetValue(), platform, variableType.GetConfidence()) :
+		vector<InstructionTextToken> {};
+
+	if (variableType.GetValue())
+	{
+		for (auto typeToken: prevTypeTokens)
+		{
+			typeToken.context = LocalVariableTokenContext;
+			typeToken.address = variable.ToIdentifier();
+			tokens.Append(typeToken);
+		}
+		tokens.Append(TextToken, " ");
+	}
+	tokens.AppendVarTextToken(variable, instr, instr.size);
+	if (variableType.GetValue())
+	{
+		for (auto typeToken: postTypeTokens)
+		{
+			typeToken.context = LocalVariableTokenContext;
+			typeToken.address = variable.ToIdentifier();
+			tokens.Append(typeToken);
+		}
+	}
+}
+
+
 void PseudoCFunction::GetExprText(const HighLevelILInstruction& instr, HighLevelILTokenEmitter& tokens,
 	DisassemblySettings* settings, BNOperatorPrecedence precedence, bool statement)
 {
@@ -1105,17 +1141,6 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 			const auto srcExpr = instr.GetSourceExpr<HLIL_VAR_INIT>();
 			const auto destExpr = instr.GetDestVariable<HLIL_VAR_INIT>();
 
-			const auto variableType = GetHighLevelILFunction()->GetFunction()->GetVariableType(destExpr);
-			const auto platform = GetHighLevelILFunction()->GetFunction()->GetPlatform();
-			const auto prevTypeTokens = variableType.GetValue() ?
-				GetTypePrinter()->GetTypeTokensBeforeName(
-					variableType.GetValue(), platform, variableType.GetConfidence()) :
-				vector<InstructionTextToken> {};
-			const auto postTypeTokens = variableType.GetValue() ?
-				GetTypePrinter()->GetTypeTokensAfterName(
-					variableType.GetValue(), platform, variableType.GetConfidence()) :
-				vector<InstructionTextToken> {};
-
 			// Check to see if the variable appears live
 			bool appearsDead = false;
 			if (const auto ssaForm = instr.GetSSAForm(); ssaForm.operation == HLIL_VAR_INIT_SSA)
@@ -1128,26 +1153,8 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 			if (appearsDead)
 				tokens.BeginForceZeroConfidence();
 
-			if (variableType.GetValue())
-			{
-				for (auto typeToken: prevTypeTokens)
-				{
-					typeToken.context = LocalVariableTokenContext;
-					typeToken.address = destExpr.ToIdentifier();
-					tokens.Append(typeToken);
-				}
-				tokens.Append(TextToken, " ");
-			}
-			tokens.AppendVarTextToken(destExpr, instr, instr.size);
-			if (variableType.GetValue())
-			{
-				for (auto typeToken: postTypeTokens)
-				{
-					typeToken.context = LocalVariableTokenContext;
-					typeToken.address = destExpr.ToIdentifier();
-					tokens.Append(typeToken);
-				}
-			}
+			AppendVarDeclare(instr, tokens, destExpr);
+
 			tokens.Append(OperationToken, " = ");
 
 			// For the right side of the assignment, only use zero confidence if the instruction does
@@ -1171,37 +1178,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 		[&]() {
 			const auto variable = instr.GetVariable<HLIL_VAR_DECLARE>();
 
-			const auto variableType = GetHighLevelILFunction()->GetFunction()->GetVariableType(variable);
-			const auto platform = GetHighLevelILFunction()->GetFunction()->GetPlatform();
-			const auto prevTypeTokens = variableType.GetValue() ?
-				GetTypePrinter()->GetTypeTokensBeforeName(
-					variableType.GetValue(), platform, variableType.GetConfidence()) :
-				vector<InstructionTextToken> {};
-			const auto postTypeTokens = variableType.GetValue() ?
-				GetTypePrinter()->GetTypeTokensAfterName(
-					variableType.GetValue(), platform, variableType.GetConfidence()) :
-				vector<InstructionTextToken> {};
-
-			if (variableType.GetValue())
-			{
-				for (auto typeToken: prevTypeTokens)
-				{
-					typeToken.context = LocalVariableTokenContext;
-					typeToken.address = variable.ToIdentifier();
-					tokens.Append(typeToken);
-				}
-				tokens.Append(TextToken, " ");
-			}
-			tokens.AppendVarTextToken(variable, instr, instr.size);
-			if (variableType.GetValue())
-			{
-				for (auto typeToken: postTypeTokens)
-				{
-					typeToken.context = LocalVariableTokenContext;
-					typeToken.address = variable.ToIdentifier();
-					tokens.Append(typeToken);
-				}
-			}
+			AppendVarDeclare(instr, tokens, variable);
 
 			if (statement)
 				tokens.AppendSemicolon();

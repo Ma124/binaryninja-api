@@ -56,6 +56,7 @@ class PseudoCFunction: public BinaryNinja::LanguageRepresentationFunction
 		BinaryNinja::HighLevelILTokenEmitter& tokens, bool deref, bool displayDeref = true);
 	void AppendDefaultSplitExpr(const BinaryNinja::HighLevelILInstruction& instr, BinaryNinja::HighLevelILTokenEmitter& tokens,
 		BinaryNinja::DisassemblySettings* settings, BNOperatorPrecedence precedence);
+	void AppendVarDeclare(const BinaryNinja::HighLevelILInstruction& instr, BinaryNinja::HighLevelILTokenEmitter& tokens, const BinaryNinja::Variable variable);
 	void GetExprTextInternal(const BinaryNinja::HighLevelILInstruction& instr,
 		BinaryNinja::HighLevelILTokenEmitter& tokens, BinaryNinja::DisassemblySettings* settings,
 		BNOperatorPrecedence precedence = TopLevelOperatorPrecedence, bool statement = false,
