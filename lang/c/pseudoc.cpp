@@ -68,7 +68,7 @@ BNSymbolDisplayResult PseudoCFunction::AppendPointerTextToken(const HighLevelILI
 		size_t childWidth = 0;
 		if (auto child = type->GetChildType(); child.GetValue())
 			childWidth = child->GetWidth();
-		if (auto strType = GetFunction()->GetView()->CheckForStringAnnotationType(val, stringValue, false, false, childWidth); strType.has_value())
+		if (auto strType = GetFunction()->GetView()->CheckForStringAnnotationType(val, stringValue, true, true, childWidth); strType.has_value())
 		{
 			if (symbolDisplay == DereferenceNonDataSymbols)
 			{
@@ -2542,7 +2542,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 			if (val != 0)
 				tokens.AppendOpenParen();
 			tokens.AppendPointerTextToken(
-				instr, instr.GetConstant<HLIL_EXTERN_PTR>(), settings, AddressOfDataSymbols, precedence);
+				instr, instr.GetConstant<HLIL_EXTERN_PTR>(), settings, AddressOfDataSymbols, precedence, true);
 			if (val != 0)
 			{
 				char valStr[32];
@@ -2791,7 +2791,7 @@ void PseudoCFunction::GetExpr_CONST_PTR(const BinaryNinja::HighLevelILInstructio
 	BNOperatorPrecedence precedence, bool statement)
 {
 	tokens.AppendPointerTextToken(
-		instr, instr.GetConstant<HLIL_CONST_PTR>(), settings, AddressOfDataSymbols, precedence);
+		instr, instr.GetConstant<HLIL_CONST_PTR>(), settings, AddressOfDataSymbols, precedence, true);
 	if (statement)
 		tokens.AppendSemicolon();
 }
