@@ -39,6 +39,8 @@ class PseudoCFunction: public BinaryNinja::LanguageRepresentationFunction
 	BNSymbolDisplayResult AppendPointerTextToken(const BinaryNinja::HighLevelILInstruction& instr, int64_t val,
 		std::vector<BinaryNinja::InstructionTextToken>& tokens, BinaryNinja::DisassemblySettings* settings,
 		BNSymbolDisplayType symbolDisplay, BNOperatorPrecedence precedence);
+	BNSymbolDisplayResult AppendPointerTextToken(BinaryNinja::HighLevelILTokenEmitter& tokens, const BinaryNinja::HighLevelILInstruction& instr, int64_t val,
+		BinaryNinja::DisassemblySettings* settings, BNSymbolDisplayType symbolDisplay, BNOperatorPrecedence precedence);
 	std::string GetSizeToken(size_t size, bool isSigned);
 	void AppendSizeToken(size_t size, bool isSigned, BinaryNinja::HighLevelILTokenEmitter& emitter);
 	void AppendSingleSizeToken(size_t size, BNInstructionTextTokenType type, BinaryNinja::HighLevelILTokenEmitter& emitter);

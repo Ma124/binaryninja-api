@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <regex>
 #include "pseudoc.h"
 #include "binaryninjaapi.h"
 #include "binaryninjacore.h"
@@ -77,7 +78,8 @@ BNSymbolDisplayResult PseudoCFunction::AppendPointerTextToken(const HighLevelILI
 				tokens.emplace_back(OperationToken, "*");
 			}
 			tokens.emplace_back(BraceToken, DisassemblyTextRenderer::GetStringLiteralPrefix(strType.value()) + string("\""));
-			tokens.emplace_back(StringToken, StringReferenceTokenContext, stringValue, instr.address, strType.value());
+			string result = std::regex_replace(stringValue, std::regex("\""), "\\\"");
+			tokens.emplace_back(StringToken, StringReferenceTokenContext, result, instr.address, strType.value());
 			tokens.emplace_back(BraceToken, "\"");
 			if (symbolDisplay == DereferenceNonDataSymbols && precedence > UnaryOperatorPrecedence)
 				tokens.emplace_back(BraceToken, ")");
@@ -179,6 +181,20 @@ BNSymbolDisplayResult PseudoCFunction::AppendPointerTextToken(const HighLevelILI
 	if (symbolDisplay == DereferenceNonDataSymbols && precedence > UnaryOperatorPrecedence)
 		tokens.emplace_back(BraceToken, ")");
 	return OtherSymbolResult;
+}
+
+
+BNSymbolDisplayResult PseudoCFunction::AppendPointerTextToken(HighLevelILTokenEmitter& tokens, const HighLevelILInstruction& instr, int64_t val,
+	DisassemblySettings* settings, BNSymbolDisplayType symbolDisplay, BNOperatorPrecedence precedence)
+{
+    vector<InstructionTextToken> pointerTokens{};
+	auto result = AppendPointerTextToken(
+		instr, instr.GetConstant<HLIL_CONST_PTR>(), pointerTokens, settings, AddressOfDataSymbols, precedence);
+	for (const auto& token : pointerTokens)
+	{
+		tokens.Append(token);
+	}
+	return result;
 }
 
 
@@ -2446,8 +2462,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 							if (srcExpr.operation == HLIL_CONST_PTR)
 							{
 								const auto constant = srcExpr.GetConstant<HLIL_CONST_PTR>();
-								symbolType = tokens.AppendPointerTextToken(
-									srcExpr, constant, settings, DisplaySymbolOnly, precedence);
+								symbolType = AppendPointerTextToken(tokens, srcExpr, constant, settings, DisplaySymbolOnly, precedence);
 							}
 							else
 							{
@@ -2481,7 +2496,7 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 			bool hasOffset = offset != 0;
 			bool needsOuterParens = precedence > UnaryOperatorPrecedence;
 			bool showTypeCasts = !settings || settings->IsOptionSet(ShowTypeCasts);
-			
+
 			if (needsOuterParens)
 				tokens.AppendOpenParen();
 
@@ -2513,11 +2528,11 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 			if (srcExpr.operation == HLIL_CONST_PTR)
 			{
 				const auto constant = srcExpr.GetConstant<HLIL_CONST_PTR>();
-				tokens.AppendPointerTextToken(srcExpr, constant, settings, DisplaySymbolOnly, precedence);
+				AppendPointerTextToken(tokens, srcExpr, constant, settings, DisplaySymbolOnly, precedence);
 			}
 			else
 			{
-				GetExprTextInternal(srcExpr, tokens, settings, 
+				GetExprTextInternal(srcExpr, tokens, settings,
 					hasOffset ? AddOperatorPrecedence : UnaryOperatorPrecedence);
 			}
 
@@ -2541,8 +2556,8 @@ void PseudoCFunction::GetExprTextInternal(const HighLevelILInstruction& instr, H
 			const int64_t val = instr.GetOffset<HLIL_EXTERN_PTR>();
 			if (val != 0)
 				tokens.AppendOpenParen();
-			tokens.AppendPointerTextToken(
-				instr, instr.GetConstant<HLIL_EXTERN_PTR>(), settings, AddressOfDataSymbols, precedence, true);
+			AppendPointerTextToken(tokens,
+				instr, instr.GetConstant<HLIL_EXTERN_PTR>(), settings, AddressOfDataSymbols, precedence);
 			if (val != 0)
 			{
 				char valStr[32];
@@ -2769,9 +2784,9 @@ void PseudoCFunction::GetExpr_CALL_OR_TAILCALL(const BinaryNinja::HighLevelILIns
 				{
 					if ((child->IsInteger() && child->IsSigned() && child->GetWidth() == 1) || child->IsWideChar())
 					{
-						tokens.AppendPointerTextToken(parameterExprs[index],
+						AppendPointerTextToken(tokens, parameterExprs[index],
 							parameterExprs[index].GetConstant<HLIL_CONST_PTR>(), settings, AddressOfDataSymbols,
-							precedence, true);
+							precedence);
 						renderedAsString = true;
 					}
 				}
@@ -2790,8 +2805,8 @@ void PseudoCFunction::GetExpr_CONST_PTR(const BinaryNinja::HighLevelILInstructio
 	BinaryNinja::HighLevelILTokenEmitter& tokens, BinaryNinja::DisassemblySettings* settings,
 	BNOperatorPrecedence precedence, bool statement)
 {
-	tokens.AppendPointerTextToken(
-		instr, instr.GetConstant<HLIL_CONST_PTR>(), settings, AddressOfDataSymbols, precedence, true);
+	AppendPointerTextToken(tokens,
+		instr, instr.GetConstant<HLIL_CONST_PTR>(), settings, AddressOfDataSymbols, precedence);
 	if (statement)
 		tokens.AppendSemicolon();
 }
@@ -2812,7 +2827,7 @@ void PseudoCFunction::GetExpr_IMPORT(const BinaryNinja::HighLevelILInstruction& 
 		return;
 	}
 
-	tokens.AppendPointerTextToken(instr, constant, settings, DereferenceNonDataSymbols, precedence);
+	AppendPointerTextToken(tokens, instr, constant, settings, DereferenceNonDataSymbols, precedence);
 	if (statement)
 		tokens.AppendSemicolon();
 }
