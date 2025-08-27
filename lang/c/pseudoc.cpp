@@ -69,7 +69,7 @@ BNSymbolDisplayResult PseudoCFunction::AppendPointerTextToken(const HighLevelILI
 		size_t childWidth = 0;
 		if (auto child = type->GetChildType(); child.GetValue())
 			childWidth = child->GetWidth();
-		if (auto strType = GetFunction()->GetView()->CheckForStringAnnotationType(val, stringValue, false, true, childWidth); strType.has_value())
+		if (auto strType = GetFunction()->GetView()->CheckForStringAnnotationType(val, stringValue, false, false, childWidth); strType.has_value())
 		{
 			if (symbolDisplay == DereferenceNonDataSymbols)
 			{
